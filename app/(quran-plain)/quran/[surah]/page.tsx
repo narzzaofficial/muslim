@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { ayatSample, getSurah } from "@/data/mock";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getAyahsBySurah, getSurahBySlug, getSurahList } from "@/lib/content/repository";
+
+export const revalidate = 2592000;
+
+export async function generateStaticParams() {
+  const surahs = await getSurahList();
+  return surahs.map((item) => ({ surah: item.slug }));
+}
 
 export default async function SurahDetailPage({
   params,
@@ -11,7 +18,7 @@ export default async function SurahDetailPage({
   params: Promise<{ surah: string }>;
 }) {
   const { surah } = await params;
-  const item = getSurah(surah);
+  const [item, ayatSample] = await Promise.all([getSurahBySlug(surah), getAyahsBySurah(surah)]);
   const juzBySurah: Record<string, string> = {
     "al-fatihah": "Juz 1",
     "al-kahf": "Juz 15",

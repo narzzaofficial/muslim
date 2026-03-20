@@ -1,9 +1,26 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getBook, kitabChapters } from "@/data/mock";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getKitabBookBySlug, getKitabBooks, getKitabChapterBySlug, getKitabChaptersByBook } from "@/lib/content/repository";
+
+export const revalidate = 2592000;
+
+export async function generateStaticParams() {
+  const books = await getKitabBooks();
+  const params: { slug: string; chapter: string }[] = [];
+
+  for (const book of books) {
+    const chapters = await getKitabChaptersByBook(book.slug);
+    chapters.forEach((chapter) => {
+      params.push({ slug: book.slug, chapter: chapter.slug });
+    });
+  }
+
+  return params;
+}
 
 export default async function ChapterDetailPage({
   params,
@@ -11,12 +28,20 @@ export default async function ChapterDetailPage({
   params: Promise<{ slug: string; chapter: string }>;
 }) {
   const { slug, chapter } = await params;
-  const book = getBook(slug);
-  const chapterIndex = kitabChapters.findIndex((item) => item.slug === chapter);
+  const [book, chapters, activeChapter] = await Promise.all([
+    getKitabBookBySlug(slug),
+    getKitabChaptersByBook(slug),
+    getKitabChapterBySlug(slug, chapter),
+  ]);
+
+  if (!activeChapter) {
+    notFound();
+  }
+
+  const chapterIndex = chapters.findIndex((item) => item.slug === chapter);
   const activeIndex = chapterIndex >= 0 ? chapterIndex : 0;
-  const prev = activeIndex > 0 ? kitabChapters[activeIndex - 1] : null;
-  const next = activeIndex < kitabChapters.length - 1 ? kitabChapters[activeIndex + 1] : null;
-  const activeTitle = kitabChapters[activeIndex]?.title ?? chapter.replaceAll("-", " ");
+  const prev = activeIndex > 0 ? chapters[activeIndex - 1] : null;
+  const next = activeIndex < chapters.length - 1 ? chapters[activeIndex + 1] : null;
 
   const qaThread = [
     { role: "q", text: "Ustaz, inti kaidah ini apa?" },
@@ -39,7 +64,7 @@ export default async function ChapterDetailPage({
     { role: "a", text: "Langsung menebak arti global tanpa memetakan jenis kata terlebih dahulu." },
     { role: "q", text: "Urutan belajar paling aman untuk bab ini bagaimana?" },
     { role: "a", text: "Kenali tanda, tentukan jenis kata, tetapkan i'rab, lalu baca makna kalimat utuh." },
-  ];
+  ] as const;
 
   return (
     <Container className="pb-20">
@@ -55,7 +80,7 @@ export default async function ChapterDetailPage({
             </Link>
 
             <div className="flex items-center gap-2">
-              <ShareButton title={`${book.title} - ${activeTitle}`} />
+              <ShareButton title={`${book.title} - ${activeChapter.title}`} />
               <ThemeToggle />
             </div>
           </div>
@@ -73,44 +98,31 @@ export default async function ChapterDetailPage({
               Bab Kitab
             </span>
           </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">{activeTitle}</h1>
+          <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">{activeChapter.title}</h1>
         </div>
       </section>
 
       <section className="mx-auto mt-4 max-w-4xl space-y-5 border-t border-[var(--border)] pt-4">
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Teks Arab</p>
-          <p className="arabic-text text-right text-3xl leading-[2.2] sm:text-[2.35rem]">
-            الاِسْمُ يُعْرَفُ بِالْجَرِّ وَالتَّنْوِينِ وَالنِّدَاءِ وَأَلْ وَمُسْنَدِ الاِسْمِ
-          </p>
+          <p className="arabic-text text-right text-3xl leading-[2.2] sm:text-[2.35rem]">{activeChapter.arabicText ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Terjemahan</p>
-          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">
-            Isim dikenali dengan tanda jar, tanwin, nida, alif lam, serta penyandaran kepada isim lainnya.
-            Ringkasan ini membantu pemula membaca struktur kalimat Arab dengan lebih cepat.
-          </p>
+          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{activeChapter.translation ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Penjelasan Singkat</p>
-          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">
-            Fokus pelajaran ini adalah membiasakan mata mengenali tanda isim secara praktis. Begitu tanda terlihat,
-            proses i&apos;rab menjadi lebih terarah dan tidak menebak-nebak fungsi kata.
-          </p>
+          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{activeChapter.explanation ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-            Penjelasan Detail (Q&A)
-          </p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Penjelasan Detail (Q&A)</p>
           <div className="space-y-6 px-1 sm:px-2">
             {qaThread.map((item, index) => (
-              <div
-                key={`${item.role}-${index}`}
-                className={`flex ${item.role === "q" ? "justify-start" : "justify-end"}`}
-              >
+              <div key={`${item.role}-${index}`} className={`flex ${item.role === "q" ? "justify-start" : "justify-end"}`}>
                 <div
                   className={
                     item.role === "q"
@@ -142,9 +154,7 @@ export default async function ChapterDetailPage({
               </span>
             </Link>
           ) : (
-            <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-sm text-[var(--muted)]">
-              Awal pelajaran
-            </div>
+            <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-sm text-[var(--muted)]">Awal pelajaran</div>
           )}
 
           {next ? (
@@ -158,12 +168,11 @@ export default async function ChapterDetailPage({
               </span>
             </Link>
           ) : (
-            <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-right text-sm text-[var(--muted)]">
-              Akhir pelajaran
-            </div>
+            <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-right text-sm text-[var(--muted)]">Akhir pelajaran</div>
           )}
         </div>
       </section>
     </Container>
   );
 }
+

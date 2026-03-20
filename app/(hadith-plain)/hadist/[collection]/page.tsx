@@ -1,7 +1,15 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ArrowUpRight, ChevronLeft } from "lucide-react";
-import { getCollection, getHadithItems, hadithTopics } from "@/data/mock";
+import { hadithTopics } from "@/data/content";
 import { Container, SearchInput } from "@/components/ui/primitives";
+import { getHadithCollectionBySlug, getHadithCollections, getHadithItemsByCollection } from "@/lib/content/repository";
+
+export const revalidate = 604800;
+
+export async function generateStaticParams() {
+  const collections = await getHadithCollections();
+  return collections.map((item) => ({ collection: item.slug }));
+}
 
 export default async function HadithCollectionPage({
   params,
@@ -9,8 +17,7 @@ export default async function HadithCollectionPage({
   params: Promise<{ collection: string }>;
 }) {
   const { collection } = await params;
-  const meta = getCollection(collection);
-  const items = getHadithItems(collection);
+  const [meta, items] = await Promise.all([getHadithCollectionBySlug(collection), getHadithItemsByCollection(collection)]);
 
   return (
     <Container className="pb-20">
@@ -27,9 +34,7 @@ export default async function HadithCollectionPage({
           <div className="mt-5 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{meta.name}</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">Daftar hadist</h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Pilih hadist yang ingin dibaca. Halaman ini khusus untuk list agar tetap bersih dan fokus.
-            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">Pilih hadist yang ingin dibaca. Halaman ini khusus list agar tetap bersih.</p>
           </div>
 
           <div className="mx-auto mt-5 max-w-2xl">
@@ -67,7 +72,7 @@ export default async function HadithCollectionPage({
                   <div>
                     <p className="text-sm font-semibold sm:text-base">{item.title}</p>
                     <p className="text-xs text-[var(--muted)]">
-                      {item.narrator} • {item.grade}
+                      {item.narrator} - {item.grade}
                     </p>
                   </div>
                 </div>
@@ -80,3 +85,4 @@ export default async function HadithCollectionPage({
     </Container>
   );
 }
+

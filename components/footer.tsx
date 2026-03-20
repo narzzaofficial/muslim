@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { navLinks } from "@/data/mock";
+import { navLinks } from "@/data/content";
 import { Container } from "@/components/ui/primitives";
 
 export function Footer() {

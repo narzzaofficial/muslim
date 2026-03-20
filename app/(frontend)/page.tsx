@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { continueItems, prayerSchedule } from "@/data/mock";
 import { FadeIn } from "@/components/ui/motion";
 import { Container } from "@/components/ui/primitives";
+import { getPrayerSchedule } from "@/lib/content/repository";
 
 const mainMenu = [
   {
@@ -22,8 +22,9 @@ const mainMenu = [
   },
 ];
 
-export default function HomePage() {
-  const nextPrayer = prayerSchedule.find((item) => item.status === "next") ?? prayerSchedule[2];
+export default async function HomePage() {
+  const prayerSchedule = await getPrayerSchedule();
+  const nextPrayer = prayerSchedule.find((item) => item.status === "next") ?? prayerSchedule.at(0);
 
   return (
     <Container className="pb-20">
@@ -61,7 +62,9 @@ export default function HomePage() {
           <div className="mb-4 text-center">
             <h2 className="text-lg font-semibold tracking-[-0.02em]">Shalat hari ini</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Berikutnya: <span className="font-semibold text-[var(--foreground)]">{nextPrayer.name}</span> ({nextPrayer.time} WITA)
+              Berikutnya:{" "}
+              <span className="font-semibold text-[var(--foreground)]">{nextPrayer?.name ?? "Belum tersedia"}</span>{" "}
+              ({nextPrayer?.time ?? "--:--"} WITA)
             </p>
           </div>
 
@@ -75,11 +78,32 @@ export default function HomePage() {
                   <span className="font-medium">{item.name}</span>
                   <div className="flex items-center gap-3">
                     {item.status ? (
-                      <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs text-[var(--accent)]">
-                        {item.status === "next" ? "Berikutnya" : "Selesai"}
+                      <span
+                        aria-label={item.status === "next" ? "Waktu shalat berikutnya" : "Waktu shalat sudah lewat"}
+                        className={`inline-block h-2.5 w-2.5 rounded-full ${
+                          item.status === "next" ? "bg-[var(--accent)]" : "bg-[var(--muted)]/45"
+                        }`}
+                        title={item.status === "next" ? "Waktu berikutnya" : "Sudah lewat"}
+                      />
+                    ) : (
+                      <span
+                        aria-label="Waktu shalat mendatang"
+                        className="inline-block h-2.5 w-2.5 rounded-full border border-[var(--border)]"
+                        title="Belum masuk waktu"
+                      />
+                    )}
+                    <span
+                      className={`w-[4.2ch] text-right tabular-nums ${
+                        item.status === "next" ? "text-sm font-semibold text-[var(--accent)]" : "text-sm font-semibold"
+                      }`}
+                    >
+                      {item.time}
+                    </span>
+                    {item.status === "next" ? (
+                      <span className="sr-only">
+                        Waktu shalat berikutnya
                       </span>
                     ) : null}
-                    <span className="text-sm font-semibold">{item.time}</span>
                   </div>
                 </div>
               ))}
@@ -88,23 +112,6 @@ export default function HomePage() {
         </section>
       </FadeIn>
 
-      <FadeIn delay={0.14}>
-        <section className="mx-auto mt-8 max-w-5xl border-t border-[var(--border)] pt-8 text-center">
-          <p className="text-sm font-medium text-[var(--muted)]">Lanjut cepat</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            {continueItems.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="group interactive-pill inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2.5 text-sm font-medium"
-              >
-                <span>{item.title}</span>
-                <ArrowUpRight className="h-3.5 w-3.5 text-[var(--muted)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      </FadeIn>
     </Container>
   );
 }

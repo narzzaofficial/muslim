@@ -1,16 +1,27 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpRight, ChevronLeft } from "lucide-react";
-import {
-  getCollection,
-  getHadithItems,
-  hadithQa,
-  hadithTags,
-  relatedHadith,
-  sanadNodes,
-} from "@/data/mock";
+import { hadithQa, hadithTags, relatedHadith, sanadNodes } from "@/data/content";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { getHadithCollectionBySlug, getHadithCollections, getHadithItemsByCollection } from "@/lib/content/repository";
+
+export const revalidate = 2592000;
+
+export async function generateStaticParams() {
+  const collections = await getHadithCollections();
+  const params: { collection: string; number: string }[] = [];
+
+  for (const collection of collections) {
+    const items = await getHadithItemsByCollection(collection.slug);
+    items.forEach((item) => {
+      params.push({ collection: collection.slug, number: String(item.number) });
+    });
+  }
+
+  return params;
+}
 
 export default async function HadithDetailPage({
   params,
@@ -18,10 +29,14 @@ export default async function HadithDetailPage({
   params: Promise<{ collection: string; number: string }>;
 }) {
   const { collection, number } = await params;
-  const meta = getCollection(collection);
-  const items = getHadithItems(collection);
+  const [meta, items] = await Promise.all([getHadithCollectionBySlug(collection), getHadithItemsByCollection(collection)]);
+
   const parsedNumber = Number(number);
-  const active = items.find((item) => item.number === parsedNumber) ?? items[0];
+  const active = items.find((item) => item.number === parsedNumber);
+
+  if (!active) {
+    notFound();
+  }
 
   return (
     <Container className="pb-20">
@@ -52,9 +67,7 @@ export default async function HadithDetailPage({
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Detail Hadist</span>
             </div>
 
-            <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-[-0.02em] sm:text-3xl">
-              {active.title}
-            </h1>
+            <h1 className="mt-4 text-2xl leading-tight font-semibold tracking-[-0.02em] sm:text-3xl">{active.title}</h1>
             <p className="mt-2.5 text-base leading-7 text-[var(--muted)]">
               Hadist no. {active.number} • Perawi: {active.narrator} • Derajat: {active.grade}
             </p>
@@ -65,10 +78,7 @@ export default async function HadithDetailPage({
       <section className="mx-auto mt-6 max-w-4xl space-y-5 border-t border-[var(--border)] pt-6">
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Teks Arab</p>
-          <p className="arabic-text text-right text-3xl leading-[2.2] sm:text-[2.35rem]">
-            وَمَا اجْتَمَعَ قَوْمٌ فِي بَيْتٍ مِنْ بُيُوتِ اللهِ يَتْلُونَ كِتَابَ اللهِ وَيَتَدَارَسُونَهُ بَيْنَهُمْ إِلَّا
-            نَزَلَتْ عَلَيْهِمُ السَّكِينَةُ
-          </p>
+          <p className="arabic-text text-right text-3xl leading-[2.2] sm:text-[2.35rem]">{active.arabicText ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
@@ -76,9 +86,7 @@ export default async function HadithDetailPage({
           <div className="space-y-3">
             {sanadNodes.map((node, index) => (
               <div key={node} className="flex items-center gap-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold">
-                  {index + 1}
-                </div>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold">{index + 1}</div>
                 <ArrowRight className="h-3.5 w-3.5 text-[var(--muted)]" />
                 <div className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2.5">
                   <p className="text-sm font-medium">{node}</p>
@@ -90,26 +98,16 @@ export default async function HadithDetailPage({
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Terjemahan</p>
-          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">
-            Tidaklah suatu kaum berkumpul di salah satu rumah Allah, membaca Kitabullah, dan saling mempelajarinya,
-            melainkan ketenangan akan turun kepada mereka, rahmat meliputi mereka, para malaikat menaungi mereka, dan
-            Allah menyebut mereka di hadapan makhluk yang ada di sisi-Nya.
-          </p>
+          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{active.translation ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Tafsir Ringkas</p>
-          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">
-            Hadist ini menegaskan nilai besar majelis ilmu. Aktivitas membaca, mengulang, dan berdiskusi Al-Qur&apos;an
-            tidak hanya bernilai akademik, tetapi juga berdampak spiritual. Ketenangan yang disebutkan menjadi tanda
-            bahwa ilmu harus melahirkan adab, kekhusyukan, dan amal.
-          </p>
+          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{active.summary ?? "-"}</p>
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-            Penjelasan Author (Q&A)
-          </p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Penjelasan Author (Q&A)</p>
           <div className="space-y-3">
             {hadithQa.map((item) => (
               <div key={item.question} className="space-y-2">
@@ -134,10 +132,7 @@ export default async function HadithDetailPage({
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Tag</p>
           <div className="flex flex-wrap gap-2">
             {hadithTags.map((tag) => (
-              <span
-                key={tag}
-                className="interactive-pill rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium"
-              >
+              <span key={tag} className="interactive-pill rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium">
                 {tag}
               </span>
             ))}
@@ -166,3 +161,4 @@ export default async function HadithDetailPage({
     </Container>
   );
 }
+

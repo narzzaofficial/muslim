@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BookOpen, Compass } from "lucide-react";
-import { navLinks } from "@/data/mock";
+import { navLinks } from "@/data/content";
 import { MobileMenu } from "@/components/mobile-menu";
 import { Container } from "@/components/ui/primitives";
 import { ThemeToggle } from "@/components/ui/theme-toggle";

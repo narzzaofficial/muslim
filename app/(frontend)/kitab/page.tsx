@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { kitabBooks, kitabFilters } from "@/data/mock";
+import { kitabFilters } from "@/data/content";
 import { Container, SearchInput } from "@/components/ui/primitives";
+import { getKitabBooks } from "@/lib/content/repository";
 
 export const metadata: Metadata = {
   title: "Perpustakaan Kitab",
@@ -28,7 +29,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function KitabPage() {
+export default async function KitabPage() {
+  const kitabBooks = await getKitabBooks();
   return (
     <Container className="pb-20">
       <section className="mx-auto max-w-5xl pt-10 sm:pt-12">

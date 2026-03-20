@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge, SurfaceCard } from "@/components/ui/primitives";
-import type { Prayer } from "@/data/mock";
+import type { Prayer } from "@/data/content";
 
 export function QuickAccessCard({
   eyebrow,

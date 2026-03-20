@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Muslim Web (Next.js 16 + Supabase)
 
-## Getting Started
+A static-first Islamic reading app (Hadist, Kitab, Qur'an) with:
+- Supabase as the content database
+- Admin-only authentication (for content operations)
+- SSG + ISR for public pages
+- Self-host friendly architecture (VM + Nginx + Cloudflare optional)
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- Supabase (`@supabase/supabase-js`, `@supabase/ssr`)
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and fill it:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_REVALIDATE_TOKEN`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase Setup
 
-## Learn More
+1. Open Supabase SQL editor.
+2. Run [`supabase/schema.sql`](supabase/schema.sql).
+3. Run [`supabase/seed.sql`](supabase/seed.sql).
+4. Create one admin user in Supabase Auth (Email/Password).
 
-To learn more about Next.js, take a look at the following resources:
+## Run Locally
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open `http://localhost:3000`.
 
-## Deploy on Vercel
+Admin login:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `http://localhost:3000/admin/login`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Rendering Strategy
+
+- SSG (mostly static): `/`, `/hadist`, `/kitab`, `/quran`
+- ISR (rare updates):
+  - `/hadist/[collection]` (7 days)
+  - `/hadist/[collection]/[number]` (30 days)
+  - `/kitab/[slug]` (30 days)
+  - `/kitab/[slug]/[chapter]` (30 days)
+  - `/quran/[surah]` (30 days)
+- SSR dynamic (admin only): `/admin/*`
+
+## Revalidation
+
+- Admin panel can revalidate all public pages.
+- API endpoint available at `POST /api/admin/revalidate` with bearer token `ADMIN_REVALIDATE_TOKEN`.
+
+## Notes
+
+- Runtime mock fallback has been removed.
+- Public pages now read content from Supabase tables only.
+

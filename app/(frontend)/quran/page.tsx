@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { surahList } from "@/data/mock";
 import { FadeIn } from "@/components/ui/motion";
 import { Container, SearchInput } from "@/components/ui/primitives";
+import { getSurahList } from "@/lib/content/repository";
 
-export default function QuranPage() {
+export default async function QuranPage() {
+  const surahList = await getSurahList();
   return (
     <Container className="pb-20">
       <FadeIn>

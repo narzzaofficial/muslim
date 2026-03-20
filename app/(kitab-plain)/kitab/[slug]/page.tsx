@@ -1,7 +1,14 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ArrowUpRight, ChevronLeft } from "lucide-react";
-import { getBook, kitabChapters } from "@/data/mock";
 import { Container, SearchInput } from "@/components/ui/primitives";
+import { getKitabBookBySlug, getKitabBooks, getKitabChaptersByBook } from "@/lib/content/repository";
+
+export const revalidate = 2592000;
+
+export async function generateStaticParams() {
+  const books = await getKitabBooks();
+  return books.map((book) => ({ slug: book.slug }));
+}
 
 export default async function KitabDetailPage({
   params,
@@ -9,7 +16,7 @@ export default async function KitabDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const book = getBook(slug);
+  const [book, chapters] = await Promise.all([getKitabBookBySlug(slug), getKitabChaptersByBook(slug)]);
 
   return (
     <Container className="pb-20">
@@ -25,7 +32,7 @@ export default async function KitabDetailPage({
 
           <div className="mt-5 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-              {book.category} • {book.level}
+              {book.category} - {book.level}
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">{book.title}</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">{book.description}</p>
@@ -43,7 +50,7 @@ export default async function KitabDetailPage({
             <p className="text-sm font-medium text-[var(--muted)]">Daftar isi</p>
           </div>
           <div className="space-y-2.5">
-            {kitabChapters.map((chapter, index) => (
+            {chapters.map((chapter, index) => (
               <Link
                 key={chapter.slug}
                 href={`/kitab/${slug}/${chapter.slug}`}
@@ -65,3 +72,4 @@ export default async function KitabDetailPage({
     </Container>
   );
 }
+

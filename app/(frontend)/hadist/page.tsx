@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { hadithCollections, hadithTopics } from "@/data/mock";
+import { hadithTopics } from "@/data/content";
 import { FadeIn } from "@/components/ui/motion";
 import { Container, SearchInput } from "@/components/ui/primitives";
+import { getHadithCollections } from "@/lib/content/repository";
 
-export default function HadistPage() {
+export default async function HadistPage() {
+  const hadithCollections = await getHadithCollections();
   const extendedTopics = Array.from(new Set([
     ...hadithTopics,
     "Akhlak",
