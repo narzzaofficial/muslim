@@ -8,6 +8,7 @@ import { useState } from "react";
 import { navLinks } from "@/data/content";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -32,6 +33,21 @@ export function MobileMenu() {
             transition={{ duration: 0.22 }}
             className="surface-card absolute inset-x-4 top-20 rounded-[28px] p-5"
           >
+            <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              aria-label="Narzza Muslim"
+              className="mb-4 inline-flex items-center gap-3"
+            >
+              <BrandLogo sizeClassName="h-11 w-auto" />
+              <span className="leading-tight">
+                <span className="block text-base font-semibold tracking-[-0.02em]">Narzza Muslim</span>
+                <span className="block text-[11px] font-medium tracking-[0.08em] text-[var(--muted)] uppercase">
+                  Baca. Belajar. Tadabbur.
+                </span>
+              </span>
+            </Link>
+
             <div className="space-y-3">
               {navLinks.map((item) => (
                 <Link

@@ -1,11 +1,14 @@
 ﻿import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpRight, ChevronLeft } from "lucide-react";
 import { hadithQa, hadithTags, relatedHadith, sanadNodes } from "@/data/content";
+import { HadithTafsirPanel } from "@/components/hadith/hadith-tafsir-panel";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getHadithCollectionBySlug, getHadithCollections, getHadithItemsByCollection } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
 
 export const revalidate = 2592000;
 
@@ -21,6 +24,35 @@ export async function generateStaticParams() {
   }
 
   return params;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ collection: string; number: string }>;
+}): Promise<Metadata> {
+  const { collection, number } = await params;
+  const [meta, items] = await Promise.all([getHadithCollectionBySlug(collection), getHadithItemsByCollection(collection)]);
+  const parsedNumber = Number(number);
+  const active = items.find((item) => item.number === parsedNumber);
+
+  if (!active) {
+    return buildMetadata({
+      title: `Hadist ${meta.name}`,
+      description: `Hadist nomor ${number} dari ${meta.name}.`,
+      path: `/hadist/${collection}/${number}`,
+      keywords: ["hadist", meta.name],
+      noIndex: true,
+    });
+  }
+
+  return buildMetadata({
+    title: `${meta.name} No. ${active.number}`,
+    description: active.translation ?? active.summary ?? `Hadist nomor ${active.number} dari koleksi ${meta.name}.`,
+    path: `/hadist/${collection}/${number}`,
+    type: "article",
+    keywords: ["hadist", meta.name, active.narrator, active.grade],
+  });
 }
 
 export default async function HadithDetailPage({
@@ -101,10 +133,7 @@ export default async function HadithDetailPage({
           <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{active.translation ?? "-"}</p>
         </div>
 
-        <div className="surface-card rounded-[26px] p-6 sm:p-7">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Tafsir Ringkas</p>
-          <p className="text-sm leading-8 text-[var(--foreground)]/88 sm:text-base">{active.summary ?? "-"}</p>
-        </div>
+        <HadithTafsirPanel summary={active.summary} versions={active.tafsirVersions ?? []} />
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Penjelasan Author (Q&A)</p>

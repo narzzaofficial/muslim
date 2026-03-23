@@ -1,3 +1,9 @@
+export type HadithTafsirVersion = {
+  source: string;
+  sourceKey: string;
+  content: string;
+};
+
 export type HadithCollection = {
   slug: string;
   name: string;
@@ -13,6 +19,7 @@ export type HadithItem = {
   arabicText?: string | null;
   translation?: string | null;
   summary?: string | null;
+  tafsirVersions?: HadithTafsirVersion[];
 };
 
 export type KitabBook = {

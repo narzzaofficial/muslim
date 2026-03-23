@@ -1,9 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ChevronLeft } from "lucide-react";
+import { QuranAyahsExplorer } from "@/components/catalog/quran-ayahs-explorer";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getAyahsBySurah, getSurahBySlug, getSurahList } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
 
 export const revalidate = 2592000;
 
@@ -12,13 +15,30 @@ export async function generateStaticParams() {
   return surahs.map((item) => ({ surah: item.slug }));
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ surah: string }>;
+}): Promise<Metadata> {
+  const { surah } = await params;
+  const item = await getSurahBySlug(surah);
+
+  return buildMetadata({
+    title: `${item.name} (${item.arabic})`,
+    description: `Baca Surah ${item.name} (${item.origin}, ${item.verses} ayat) lengkap dengan terjemahan dan tafsir ringkas.`,
+    path: `/quran/${surah}`,
+    type: "article",
+    keywords: ["quran", "surah", item.name, item.origin, `${item.verses} ayat`],
+  });
+}
+
 export default async function SurahDetailPage({
   params,
 }: {
   params: Promise<{ surah: string }>;
 }) {
   const { surah } = await params;
-  const [item, ayatSample] = await Promise.all([getSurahBySlug(surah), getAyahsBySurah(surah)]);
+  const [item, ayahs] = await Promise.all([getSurahBySlug(surah), getAyahsBySurah(surah)]);
   const juzBySurah: Record<string, string> = {
     "al-fatihah": "Juz 1",
     "al-kahf": "Juz 15",
@@ -66,26 +86,7 @@ export default async function SurahDetailPage({
         </div>
       </section>
 
-      <section className="mx-auto mt-6 max-w-4xl border-t border-[var(--border)] pt-6">
-        <div className="space-y-4">
-          {ayatSample.map((ayah) => (
-            <article key={ayah.number} className="surface-card rounded-[24px] p-5 sm:p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
-                  Ayat {ayah.number}
-                </span>
-              </div>
-              <div className="rounded-2xl border border-[var(--border)] px-4 py-4 sm:px-5">
-                <p className="arabic-text text-right text-3xl leading-[2.2]">{ayah.arabic}</p>
-              </div>
-
-              <div className="mt-3 rounded-2xl border border-[var(--border)] px-4 py-4 sm:px-5">
-                <p className="text-sm leading-8 text-[var(--foreground)]/88">{ayah.translation}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <QuranAyahsExplorer ayahs={ayahs} />
     </Container>
   );
 }

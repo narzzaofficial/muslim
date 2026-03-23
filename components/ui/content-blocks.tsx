@@ -450,24 +450,6 @@ export function AudioControlBar() {
   );
 }
 
-export function ReadingSettings() {
-  return (
-    <SurfaceCard className="rounded-[28px] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-[var(--muted)]">Pengaturan Baca</p>
-          <p className="font-semibold">Ukuran teks, tafsir, dan bookmark</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="rounded-full border border-[var(--border)] px-4 py-2 text-sm">Arab 115%</button>
-          <button className="rounded-full border border-[var(--border)] px-4 py-2 text-sm">Tafsir On</button>
-          <button className="rounded-full border border-[var(--border)] px-4 py-2 text-sm">Focus</button>
-        </div>
-      </div>
-    </SurfaceCard>
-  );
-}
-
 export function LessonList({ items }: { items: { slug: string; title: string; duration: string; completed: boolean }[] }) {
   return (
     <div className="space-y-3">

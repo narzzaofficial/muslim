@@ -2,16 +2,47 @@
 
 import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import type { Ayah, HadithCollection, HadithItem, KitabBook, KitabChapter, PrayerItem, Surah } from "@/lib/content/types";
+import type { Ayah, HadithCollection, HadithItem, HadithTafsirVersion, KitabBook, KitabChapter, PrayerItem, Surah } from "@/lib/content/types";
 import type { Database } from "@/lib/supabase/types";
 
-type PrayerRow = Database["public"]["Tables"]["prayer_schedule"]["Row"];
 type HadithCollectionRow = Database["public"]["Tables"]["hadith_collections"]["Row"];
 type HadithEntryRow = Database["public"]["Tables"]["hadith_entries"]["Row"];
 type KitabBookRow = Database["public"]["Tables"]["kitab_books"]["Row"];
 type KitabChapterRow = Database["public"]["Tables"]["kitab_chapters"]["Row"];
 type SurahRow = Database["public"]["Tables"]["surahs"]["Row"];
 type SurahAyahRow = Database["public"]["Tables"]["surah_ayahs"]["Row"];
+
+type AladhanResponse = {
+  code: number;
+  status: string;
+  data: {
+    timings: Record<string, string>;
+    meta: {
+      timezone: string;
+    };
+  };
+};
+
+export type PrayerScheduleResult = {
+  schedule: PrayerItem[];
+  timezone: string;
+};
+
+const prayerOrder = [
+  { key: "Fajr", name: "Subuh" },
+  { key: "Dhuhr", name: "Dzuhur" },
+  { key: "Asr", name: "Ashar" },
+  { key: "Maghrib", name: "Maghrib" },
+  { key: "Isha", name: "Isya" },
+] as const;
+
+const fallbackTimings: Record<(typeof prayerOrder)[number]["key"], string> = {
+  Fajr: "04:50",
+  Dhuhr: "12:10",
+  Asr: "15:20",
+  Maghrib: "18:10",
+  Isha: "19:20",
+};
 
 function ensureData<T>(data: T | null, error: { message: string } | null, context: string): T {
   if (error) {
@@ -26,21 +57,151 @@ function ensureData<T>(data: T | null, error: { message: string } | null, contex
   return data;
 }
 
-export const getPrayerSchedule = unstable_cache(
-  async (): Promise<PrayerItem[]> => {
-    const supabase = createPublicSupabaseClient();
-    const { data, error } = await supabase.from("prayer_schedule").select("name,time_label,status,position").order("position", { ascending: true });
-    const rows = ensureData(data as PrayerRow[] | null, error, "Failed to load prayer schedule");
+function parseHadithTafsirVersions(value: Database["public"]["Tables"]["hadith_entries"]["Row"]["tafsir_versions"]): HadithTafsirVersion[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-    return rows.map((row) => ({
-      name: row.name,
-      time: row.time_label,
-      status: row.status ?? undefined,
-    }));
-  },
-  ["prayer-schedule"],
-  { tags: ["prayer-schedule"], revalidate: 60 * 60 },
-);
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+      const source = typeof item["source"] === "string" ? item["source"] : "";
+      const sourceKey = typeof item["sourceKey"] === "string" ? item["sourceKey"] : "";
+      const content = typeof item["content"] === "string" ? item["content"] : "";
+      if (!source || !sourceKey || !content) {
+        return null;
+      }
+      return { source, sourceKey, content };
+    })
+    .filter((item): item is HadithTafsirVersion => item !== null);
+}
+
+function getPrayerConfig() {
+  return {
+    city: process.env.ALADHAN_CITY?.trim() || "Makassar",
+    country: process.env.ALADHAN_COUNTRY?.trim() || "Indonesia",
+    method: process.env.ALADHAN_METHOD?.trim() || "11",
+    school: process.env.ALADHAN_SCHOOL?.trim() || "0",
+    tune: process.env.ALADHAN_TUNE?.trim() || "0,0,0,0,0,0,0,0,0",
+    timezone: process.env.ALADHAN_TIMEZONE?.trim() || "Asia/Makassar",
+  };
+}
+
+function extractTime(value: string | undefined) {
+  if (!value) {
+    return "00:00";
+  }
+  const cleaned = value.trim();
+  const match = cleaned.match(/^\d{1,2}:\d{2}/);
+  return match ? match[0].padStart(5, "0") : "00:00";
+}
+
+function minutesFromTime(value: string) {
+  const [h, m] = value.split(":").map((part) => Number(part));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) {
+    return 0;
+  }
+  return h * 60 + m;
+}
+
+function getCurrentMinutesInTimezone(timezone: string) {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+  return hour * 60 + minute;
+}
+
+function buildPrayerScheduleFromTimings(timings: Record<string, string>, timezone: string): PrayerItem[] {
+  const currentMinutes = getCurrentMinutesInTimezone(timezone);
+  const schedule = prayerOrder.map((item) => {
+    const time = extractTime(timings[item.key]);
+    return {
+      name: item.name,
+      time,
+      minutes: minutesFromTime(time),
+    };
+  });
+
+  let nextIndex = schedule.findIndex((item) => currentMinutes < item.minutes);
+  if (nextIndex === -1) {
+    nextIndex = 0;
+  }
+
+  return schedule.map((item, index) => ({
+    name: item.name,
+    time: item.time,
+    status: index === nextIndex ? "next" : "done",
+  }));
+}
+
+async function fetchAladhanTimings(url: string): Promise<PrayerScheduleResult> {
+  const config = getPrayerConfig();
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Aladhan responded with ${response.status}`);
+    }
+
+    const payload = (await response.json()) as AladhanResponse;
+    if (payload.code !== 200 || !payload.data?.timings) {
+      throw new Error(`Invalid Aladhan payload: ${payload.status}`);
+    }
+
+    const timezone = payload.data.meta?.timezone || config.timezone;
+    return {
+      schedule: buildPrayerScheduleFromTimings(payload.data.timings, timezone),
+      timezone,
+    };
+  } catch {
+    return {
+      schedule: buildPrayerScheduleFromTimings(fallbackTimings, config.timezone),
+      timezone: config.timezone,
+    };
+  }
+}
+
+export async function getPrayerScheduleByCoordinates(latitude: number, longitude: number): Promise<PrayerScheduleResult> {
+  const config = getPrayerConfig();
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    method: config.method,
+    school: config.school,
+    tune: config.tune,
+  });
+  const url = `https://api.aladhan.com/v1/timings?${params.toString()}`;
+  return fetchAladhanTimings(url);
+}
+
+export async function getPrayerSchedule(): Promise<PrayerItem[]> {
+  const config = getPrayerConfig();
+  const params = new URLSearchParams({
+    city: config.city,
+    country: config.country,
+    method: config.method,
+    school: config.school,
+    tune: config.tune,
+  });
+  const url = `https://api.aladhan.com/v1/timingsByCity?${params.toString()}`;
+  const result = await fetchAladhanTimings(url);
+  return result.schedule;
+}
 
 export const getHadithCollections = unstable_cache(
   async (): Promise<HadithCollection[]> => {
@@ -79,11 +240,22 @@ export const getHadithCollectionBySlug = unstable_cache(
 export const getHadithItemsByCollection = unstable_cache(
   async (collectionSlug: string): Promise<HadithItem[]> => {
     const supabase = createPublicSupabaseClient();
-    const { data, error } = await supabase
+
+    let { data, error } = await supabase
       .from("hadith_entries")
-      .select("number,title,narrator,grade,arabic_text,translation,summary")
+      .select("number,title,narrator,grade,arabic_text,translation,summary,tafsir_versions")
       .eq("collection_slug", collectionSlug)
       .order("number", { ascending: true });
+
+    if (error?.message?.includes("tafsir_versions")) {
+      const fallbackResult = await supabase
+        .from("hadith_entries")
+        .select("number,title,narrator,grade,arabic_text,translation,summary")
+        .eq("collection_slug", collectionSlug)
+        .order("number", { ascending: true });
+      data = fallbackResult.data as (HadithEntryRow & { tafsir_versions?: Database["public"]["Tables"]["hadith_entries"]["Row"]["tafsir_versions"] })[] | null;
+      error = fallbackResult.error;
+    }
 
     const rows = ensureData(data as HadithEntryRow[] | null, error, `Failed to load hadith entries (${collectionSlug})`);
 
@@ -95,6 +267,7 @@ export const getHadithItemsByCollection = unstable_cache(
       arabicText: row.arabic_text,
       translation: row.translation,
       summary: row.summary,
+      tafsirVersions: parseHadithTafsirVersions("tafsir_versions" in row ? row.tafsir_versions : []),
     }));
   },
   ["hadith-items-by-collection"],

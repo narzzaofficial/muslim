@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { loginAdminAction } from "@/app/admin/actions";
 import { Container } from "@/components/ui/primitives";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = buildMetadata({
+  title: "Login Admin",
+  description: "Halaman login admin untuk pengelolaan konten internal.",
+  path: "/admin/login",
+  noIndex: true,
+});
 
 export default async function AdminLoginPage({
   searchParams,

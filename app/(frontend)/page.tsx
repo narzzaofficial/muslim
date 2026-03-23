@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { FadeIn } from "@/components/ui/motion";
 import { Container } from "@/components/ui/primitives";
+import { PrayerTodaySection } from "@/components/home/prayer-today-section";
 import { getPrayerSchedule } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Beranda",
+  description:
+    "Beranda Muslim by Narzza untuk akses cepat ke Hadist, Kitab Nahwu-Sharaf, Al-Qur'an, dan jadwal shalat harian.",
+  path: "/",
+  keywords: ["beranda muslim", "jadwal shalat", "hadist", "quran", "kitab islam"],
+});
 
 const mainMenu = [
   {
@@ -24,7 +35,6 @@ const mainMenu = [
 
 export default async function HomePage() {
   const prayerSchedule = await getPrayerSchedule();
-  const nextPrayer = prayerSchedule.find((item) => item.status === "next") ?? prayerSchedule.at(0);
 
   return (
     <Container className="pb-20">
@@ -58,58 +68,7 @@ export default async function HomePage() {
       </FadeIn>
 
       <FadeIn delay={0.08}>
-        <section id="shalat-hari-ini" className="mx-auto mt-8 max-w-5xl border-t border-[var(--border)] pt-8">
-          <div className="mb-4 text-center">
-            <h2 className="text-lg font-semibold tracking-[-0.02em]">Shalat hari ini</h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Berikutnya:{" "}
-              <span className="font-semibold text-[var(--foreground)]">{nextPrayer?.name ?? "Belum tersedia"}</span>{" "}
-              ({nextPrayer?.time ?? "--:--"} WITA)
-            </p>
-          </div>
-
-          <div className="surface-card rounded-[24px] p-4 sm:p-5">
-            <div className="space-y-2">
-              {prayerSchedule.map((item) => (
-                <div
-                  key={item.name}
-                  className="interactive-row flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3"
-                >
-                  <span className="font-medium">{item.name}</span>
-                  <div className="flex items-center gap-3">
-                    {item.status ? (
-                      <span
-                        aria-label={item.status === "next" ? "Waktu shalat berikutnya" : "Waktu shalat sudah lewat"}
-                        className={`inline-block h-2.5 w-2.5 rounded-full ${
-                          item.status === "next" ? "bg-[var(--accent)]" : "bg-[var(--muted)]/45"
-                        }`}
-                        title={item.status === "next" ? "Waktu berikutnya" : "Sudah lewat"}
-                      />
-                    ) : (
-                      <span
-                        aria-label="Waktu shalat mendatang"
-                        className="inline-block h-2.5 w-2.5 rounded-full border border-[var(--border)]"
-                        title="Belum masuk waktu"
-                      />
-                    )}
-                    <span
-                      className={`w-[4.2ch] text-right tabular-nums ${
-                        item.status === "next" ? "text-sm font-semibold text-[var(--accent)]" : "text-sm font-semibold"
-                      }`}
-                    >
-                      {item.time}
-                    </span>
-                    {item.status === "next" ? (
-                      <span className="sr-only">
-                        Waktu shalat berikutnya
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <PrayerTodaySection initialSchedule={prayerSchedule} />
       </FadeIn>
 
     </Container>

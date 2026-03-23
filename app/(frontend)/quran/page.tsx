@@ -1,8 +1,16 @@
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import type { Metadata } from "next";
+import { QuranSurahExplorer } from "@/components/catalog/quran-surah-explorer";
 import { FadeIn } from "@/components/ui/motion";
-import { Container, SearchInput } from "@/components/ui/primitives";
+import { Container } from "@/components/ui/primitives";
 import { getSurahList } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Al-Qur'an",
+  description: "Baca dan jelajahi daftar surah Al-Qur'an dengan tampilan bersih, nyaman, dan mudah diteruskan.",
+  path: "/quran",
+  keywords: ["al quran", "surah", "baca quran online", "tafsir ringkas"],
+});
 
 export default async function QuranPage() {
   const surahList = await getSurahList();
@@ -16,41 +24,12 @@ export default async function QuranPage() {
               Cari surah dan lanjutkan tilawah dengan tampilan bersih.
             </p>
           </div>
-
-          <div className="mx-auto max-w-2xl">
-            <SearchInput placeholder="Cari surah atau nomor..." />
-          </div>
         </section>
       </FadeIn>
 
       <FadeIn delay={0.08}>
-        <section className="mx-auto mt-8 max-w-5xl border-t border-[var(--border)] pt-8">
-          <div className="mb-4 text-center">
-            <h2 className="text-lg font-semibold tracking-[-0.02em]">Daftar surah</h2>
-          </div>
-          <div className="space-y-2">
-            {surahList.map((item, index) => (
-              <Link
-                key={item.slug}
-                href={`/quran/${item.slug}`}
-                className="group interactive-row flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3"
-              >
-                <div className="flex items-center gap-4">
-                  <p className="w-8 text-sm font-semibold text-[var(--muted)]">{index + 1}</p>
-                  <div>
-                    <p className="text-sm font-semibold">{item.name}</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {item.origin} - {item.verses} ayat
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="arabic-text text-xl">{item.arabic}</p>
-                  <ArrowUpRight className="h-4 w-4 text-[var(--muted)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
-                </div>
-              </Link>
-            ))}
-          </div>
+        <section className="mx-auto mt-2 max-w-5xl">
+          <QuranSurahExplorer surahs={surahList} />
         </section>
       </FadeIn>
     </Container>

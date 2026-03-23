@@ -25,8 +25,12 @@ create table if not exists public.hadith_entries (
   arabic_text text,
   translation text,
   summary text,
+  tafsir_versions jsonb not null default '[]'::jsonb,
   unique (collection_slug, number)
 );
+
+alter table public.hadith_entries
+  add column if not exists tafsir_versions jsonb not null default '[]'::jsonb;
 
 create index if not exists idx_hadith_entries_collection_number
   on public.hadith_entries (collection_slug, number);

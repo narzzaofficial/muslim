@@ -1,10 +1,12 @@
 ﻿import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getKitabBookBySlug, getKitabBooks, getKitabChapterBySlug, getKitabChaptersByBook } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
 
 export const revalidate = 2592000;
 
@@ -20,6 +22,23 @@ export async function generateStaticParams() {
   }
 
   return params;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; chapter: string }>;
+}): Promise<Metadata> {
+  const { slug, chapter } = await params;
+  const [book, activeChapter] = await Promise.all([getKitabBookBySlug(slug), getKitabChapterBySlug(slug, chapter)]);
+
+  return buildMetadata({
+    title: `${activeChapter.title} - ${book.title}`,
+    description: activeChapter.explanation ?? activeChapter.translation ?? `Bab ${activeChapter.title} dari kitab ${book.title}.`,
+    path: `/kitab/${slug}/${chapter}`,
+    type: "article",
+    keywords: ["kitab", "nahwu", "sharaf", book.title, activeChapter.title],
+  });
 }
 
 export default async function ChapterDetailPage({

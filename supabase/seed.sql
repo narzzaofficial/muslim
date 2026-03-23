@@ -19,21 +19,26 @@ set name = excluded.name,
     count_label = excluded.count_label,
     description = excluded.description;
 
-insert into public.hadith_entries (collection_slug, number, title, narrator, grade, arabic_text, translation, summary) values
+insert into public.hadith_entries (collection_slug, number, title, narrator, grade, arabic_text, translation, summary, tafsir_versions) values
   ('muslim', 2699, 'Keutamaan majelis ilmu', 'Abu Hurairah', 'Shahih',
    'وَمَا اجْتَمَعَ قَوْمٌ فِي بَيْتٍ مِنْ بُيُوتِ اللَّهِ...',
    'Tidaklah suatu kaum berkumpul di salah satu rumah Allah untuk membaca dan mempelajari Al-Qur''an, melainkan mereka diliputi ketenangan.',
-   'Majelis ilmu menumbuhkan ketenangan, rahmat, dan adab dalam belajar.'),
-  ('muslim', 2554, 'Lapang dalam urusan sesama', 'Abu Hurairah', 'Shahih', null, 'Permudah urusan saudaramu, Allah akan memudahkan urusanmu.', 'Akhlak sosial adalah bagian dari iman.'),
-  ('bukhari', 8, 'Islam dibangun atas lima perkara', 'Ibnu Umar', 'Shahih', null, 'Islam dibangun atas lima perkara...', 'Landasan utama dalam syariat Islam.'),
-  ('tirmidzi', 2646, 'Doa untuk penuntut ilmu', 'Anas bin Malik', 'Hasan', null, 'Semoga Allah menerangi wajah orang yang mendengar ilmu lalu menyampaikannya.', 'Ilmu yang disampaikan menjadi pahala berkelanjutan.')
+   'Majelis ilmu menumbuhkan ketenangan, rahmat, dan adab dalam belajar.',
+   jsonb_build_array(
+     jsonb_build_object('source', 'Imam An-Nawawi', 'sourceKey', 'an-nawawi', 'content', 'Majelis ilmu melahirkan sakinah, rahmat, dan disebutkan di sisi para malaikat.'),
+     jsonb_build_object('source', 'Ibnu Hajar Al-Asqalani', 'sourceKey', 'ibnu-hajar', 'content', 'Hadith ini menjadi dalil keutamaan halaqah Al-Qur''an dan pentingnya adab saat menuntut ilmu.')
+   )),
+  ('muslim', 2554, 'Lapang dalam urusan sesama', 'Abu Hurairah', 'Shahih', null, 'Permudah urusan saudaramu, Allah akan memudahkan urusanmu.', 'Akhlak sosial adalah bagian dari iman.', '[]'::jsonb),
+  ('bukhari', 8, 'Islam dibangun atas lima perkara', 'Ibnu Umar', 'Shahih', null, 'Islam dibangun atas lima perkara...', 'Landasan utama dalam syariat Islam.', '[]'::jsonb),
+  ('tirmidzi', 2646, 'Doa untuk penuntut ilmu', 'Anas bin Malik', 'Hasan', null, 'Semoga Allah menerangi wajah orang yang mendengar ilmu lalu menyampaikannya.', 'Ilmu yang disampaikan menjadi pahala berkelanjutan.', '[]'::jsonb)
 on conflict (collection_slug, number) do update
 set title = excluded.title,
     narrator = excluded.narrator,
     grade = excluded.grade,
     arabic_text = excluded.arabic_text,
     translation = excluded.translation,
-    summary = excluded.summary;
+    summary = excluded.summary,
+    tafsir_versions = excluded.tafsir_versions;
 
 insert into public.kitab_books (slug, title, category, level, lessons_count, cover_image, description) values
   ('mukhtashar-jiddan', 'Mukhtashar Jiddan fi Nahw', 'Nahwu', 'pemula', 24, 'https://picsum.photos/seed/kitab-nahwu-1/320/480', 'Pengantar ringkas untuk memahami isim, fi''il, dan huruf secara bertahap.'),

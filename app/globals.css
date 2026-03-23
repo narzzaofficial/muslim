@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #f6f4ee;
@@ -171,4 +172,9 @@ select {
   border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   background: color-mix(in srgb, var(--accent-soft) 52%, transparent);
   color: var(--foreground);
+}
+
+select option {
+  background-color: #ffffff;
+  color: #111827;
 }

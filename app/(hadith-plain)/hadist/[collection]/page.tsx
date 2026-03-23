@@ -1,14 +1,30 @@
-﻿import Link from "next/link";
-import { ArrowUpRight, ChevronLeft } from "lucide-react";
-import { hadithTopics } from "@/data/content";
-import { Container, SearchInput } from "@/components/ui/primitives";
+import type { Metadata } from "next";
+import { HadithItemsExplorer } from "@/components/catalog/hadith-items-explorer";
+import { Container } from "@/components/ui/primitives";
 import { getHadithCollectionBySlug, getHadithCollections, getHadithItemsByCollection } from "@/lib/content/repository";
+import { buildMetadata } from "@/lib/seo";
 
 export const revalidate = 604800;
 
 export async function generateStaticParams() {
   const collections = await getHadithCollections();
   return collections.map((item) => ({ collection: item.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ collection: string }>;
+}): Promise<Metadata> {
+  const { collection } = await params;
+  const meta = await getHadithCollectionBySlug(collection);
+
+  return buildMetadata({
+    title: `${meta.name} - Daftar Hadist`,
+    description: meta.description,
+    path: `/hadist/${collection}`,
+    keywords: ["hadist", meta.name, "daftar hadist", "kajian islam"],
+  });
 }
 
 export default async function HadithCollectionPage({
@@ -23,66 +39,15 @@ export default async function HadithCollectionPage({
     <Container className="pb-20">
       <section className="mx-auto max-w-5xl pt-10 sm:pt-12">
         <div className="surface-card surface-strong rounded-[28px] px-5 py-5 sm:px-6 sm:py-6">
-          <Link
-            href="/hadist"
-            className="interactive-pill inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-3.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Kembali ke pusat hadist
-          </Link>
-
-          <div className="mt-5 text-center">
+          <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{meta.name}</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">Daftar hadist</h1>
             <p className="mt-2 text-sm text-[var(--muted)]">Pilih hadist yang ingin dibaca. Halaman ini khusus list agar tetap bersih.</p>
           </div>
-
-          <div className="mx-auto mt-5 max-w-2xl">
-            <SearchInput placeholder="Cari nomor, judul, atau perawi..." />
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            {hadithTopics.map((topic, index) => (
-              <button
-                key={topic}
-                className={
-                  index === 0
-                    ? "interactive-pill rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--accent)]"
-                    : "interactive-pill rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium"
-                }
-              >
-                {topic}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="mx-auto mt-6 max-w-5xl border-t border-[var(--border)] pt-6">
-        <div className="surface-card surface-strong rounded-[28px] px-4 py-4 sm:px-5 sm:py-5">
-          <div className="space-y-2.5">
-            {items.map((item) => (
-              <Link
-                key={item.number}
-                href={`/hadist/${collection}/${item.number}`}
-                className="group interactive-row flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3.5"
-              >
-                <div className="flex items-center gap-4">
-                  <p className="w-9 text-sm font-semibold text-[var(--muted)]">{item.number}</p>
-                  <div>
-                    <p className="text-sm font-semibold sm:text-base">{item.title}</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {item.narrator} - {item.grade}
-                    </p>
-                  </div>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)]" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HadithItemsExplorer collectionSlug={collection} items={items} backHref="/hadist" />
     </Container>
   );
 }
-

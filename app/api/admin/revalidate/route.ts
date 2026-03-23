@@ -3,7 +3,6 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { getAdminRevalidateToken } from "@/lib/supabase/env";
 
 const cacheTags = [
-  "prayer-schedule",
   "hadith-collections",
   "hadith-entries",
   "kitab-books",

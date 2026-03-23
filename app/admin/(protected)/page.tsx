@@ -5,10 +5,6 @@ export const dynamic = "force-dynamic";
 
 const sections = [
   {
-    category: "Ibadah",
-    items: [{ href: "/admin/prayer", label: "Jadwal Shalat" }],
-  },
-  {
     category: "Hadith",
     items: [
       { href: "/admin/hadith-collections", label: "Hadith Collections" },

@@ -27,12 +27,22 @@ Required:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_REVALIDATE_TOKEN`
 
+Optional (Prayer Times via Aladhan API):
+
+- `ALADHAN_CITY` (default: `Makassar`)
+- `ALADHAN_COUNTRY` (default: `Indonesia`)
+- `ALADHAN_METHOD` (default: `11`)
+- `ALADHAN_SCHOOL` (default: `0`)
+- `ALADHAN_TUNE` (default: `0,0,0,0,0,0,0,0,0`)
+- `ALADHAN_TIMEZONE` (default: `Asia/Makassar`)
+
 ## Supabase Setup
 
 1. Open Supabase SQL editor.
 2. Run [`supabase/schema.sql`](supabase/schema.sql).
 3. Run [`supabase/seed.sql`](supabase/seed.sql).
 4. Create one admin user in Supabase Auth (Email/Password).
+5. If your database already exists, run [`supabase/migrate_add_hadith_tafsir_versions.sql`](supabase/migrate_add_hadith_tafsir_versions.sql).
 
 ## Run Locally
 
@@ -65,6 +75,6 @@ Admin login:
 
 ## Notes
 
-- Runtime mock fallback has been removed.
-- Public pages now read content from Supabase tables only.
+- Prayer times are fetched live from Aladhan API (`/v1/timingsByCity`) using the optional env vars above.
+- Other public pages read content from Supabase tables.
 

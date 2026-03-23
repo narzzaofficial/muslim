@@ -1,10 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/actions";
 import { Container } from "@/components/ui/primitives";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = buildMetadata({
+  title: "Admin Panel",
+  description: "Panel admin internal untuk update konten situs.",
+  path: "/admin",
+  noIndex: true,
+});
 
 export default async function AdminProtectedLayout({
   children,
