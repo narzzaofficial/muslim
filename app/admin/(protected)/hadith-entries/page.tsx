@@ -2,6 +2,7 @@ import Link from "next/link";
 import { deleteHadithEntryAction, upsertHadithEntryAction } from "@/app/admin/actions";
 import { hadithTafsirSources } from "@/lib/content/hadith-tafsir";
 import { getAdminHadithCollections, getAdminHadithEntriesList, getAdminHadithEntryByKey } from "@/lib/content/admin-repository";
+import { HadithQaEditor } from "@/components/admin/hadith-qa-editor";
 
 type TafsirDefaultMap = Record<string, string>;
 
@@ -21,6 +22,67 @@ function pickTafsirDefaults(value: unknown): TafsirDefaultMap {
     }
   });
   return result;
+}
+
+function pickLineDefaults(value: unknown): string {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+  return value.filter((item): item is string => typeof item === "string").join("\n");
+}
+
+function pickQaDefaults(value: unknown): { sourceName: string; sourceUrl: string; lines: Array<{ id: number; role: "question" | "answer"; text: string; imageUrl: string }> } {
+  if (!Array.isArray(value)) {
+    return { sourceName: "", sourceUrl: "", lines: [] };
+  }
+
+  const lines: Array<{ id: number; role: "question" | "answer"; text: string; imageUrl: string }> = [];
+  let sourceName = "";
+  let sourceUrl = "";
+
+  value.forEach((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return;
+    }
+    const question = typeof item["question"] === "string" ? item["question"].trim() : "";
+    const answer = typeof item["answer"] === "string" ? item["answer"].trim() : "";
+    if (!question || !answer) {
+      return;
+    }
+    if (!sourceName && typeof item["sourceName"] === "string") {
+      sourceName = item["sourceName"].trim();
+    }
+    if (!sourceUrl && typeof item["sourceUrl"] === "string") {
+      sourceUrl = item["sourceUrl"].trim();
+    }
+
+    const base = index * 2;
+    lines.push({ id: base + 1, role: "question", text: question, imageUrl: "" });
+    lines.push({ id: base + 2, role: "answer", text: answer, imageUrl: "" });
+  });
+
+  return { sourceName, sourceUrl, lines };
+}
+
+function pickRelatedDefaults(value: unknown): string {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+      const collectionSlug = typeof item["collectionSlug"] === "string" ? item["collectionSlug"].trim() : "";
+      const numberValue = Number(item["number"]);
+      if (!collectionSlug || !Number.isFinite(numberValue) || !Number.isInteger(numberValue)) {
+        return null;
+      }
+      const title = typeof item["title"] === "string" ? item["title"].trim() : "";
+      return title ? `${collectionSlug}/${numberValue} || ${title}` : `${collectionSlug}/${numberValue}`;
+    })
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
 }
 
 export const dynamic = "force-dynamic";
@@ -45,6 +107,10 @@ export default async function AdminHadithEntriesPage({
   ]);
 
   const tafsirDefaults = pickTafsirDefaults(editingEntry?.tafsir_versions);
+  const sanadDefaults = pickLineDefaults(editingEntry?.sanad_nodes);
+  const qaDefaults = pickQaDefaults(editingEntry?.author_qa);
+  const tagsDefaults = pickLineDefaults(editingEntry?.tags);
+  const relatedDefaults = pickRelatedDefaults(editingEntry?.related_hadith);
 
   return (
     <section className="mx-auto mt-6 grid max-w-4xl gap-4">
@@ -99,6 +165,44 @@ export default async function AdminHadithEntriesPage({
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] p-3">
+            <p className="text-sm font-medium">Pohon Sanad (Dinamis)</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Satu per baris. Urut dari perawi atas ke bawah.</p>
+            <textarea
+              name="sanad_nodes"
+              placeholder={"Imam Muslim\nAbu Bakr bin Abi Syaibah\n..."}
+              rows={4}
+              defaultValue={sanadDefaults}
+              className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+
+          <HadithQaEditor name="author_qa" initialValue={qaDefaults} />
+
+          <div className="rounded-lg border border-[var(--border)] p-3">
+            <p className="text-sm font-medium">Tag Dinamis</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Bisa dipisah koma atau baris baru.</p>
+            <textarea
+              name="tags"
+              placeholder={"Muttafaq 'alaih, Majelis Ilmu\nKeutamaan"}
+              rows={3}
+              defaultValue={tagsDefaults}
+              className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] p-3">
+            <p className="text-sm font-medium">Hadist Terkait Dinamis</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">Format per baris: collection/number || judul opsional</p>
+            <textarea
+              name="related_hadith"
+              placeholder={"muslim/2699 || Menempuh jalan ilmu\nbukhari/100 || Allah memudahkan surga"}
+              rows={4}
+              defaultValue={relatedDefaults}
+              className="mt-2 w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

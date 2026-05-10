@@ -26,11 +26,23 @@ create table if not exists public.hadith_entries (
   translation text,
   summary text,
   tafsir_versions jsonb not null default '[]'::jsonb,
+  sanad_nodes jsonb not null default '[]'::jsonb,
+  author_qa jsonb not null default '[]'::jsonb,
+  tags jsonb not null default '[]'::jsonb,
+  related_hadith jsonb not null default '[]'::jsonb,
   unique (collection_slug, number)
 );
 
 alter table public.hadith_entries
   add column if not exists tafsir_versions jsonb not null default '[]'::jsonb;
+alter table public.hadith_entries
+  add column if not exists sanad_nodes jsonb not null default '[]'::jsonb;
+alter table public.hadith_entries
+  add column if not exists author_qa jsonb not null default '[]'::jsonb;
+alter table public.hadith_entries
+  add column if not exists tags jsonb not null default '[]'::jsonb;
+alter table public.hadith_entries
+  add column if not exists related_hadith jsonb not null default '[]'::jsonb;
 
 create index if not exists idx_hadith_entries_collection_number
   on public.hadith_entries (collection_slug, number);

@@ -2,7 +2,18 @@
 
 import { unstable_cache } from "next/cache";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import type { Ayah, HadithCollection, HadithItem, HadithTafsirVersion, KitabBook, KitabChapter, PrayerItem, Surah } from "@/lib/content/types";
+import type {
+  Ayah,
+  HadithCollection,
+  HadithItem,
+  HadithQaItem,
+  HadithTafsirVersion,
+  KitabBook,
+  KitabChapter,
+  PrayerItem,
+  RelatedHadithItem,
+  Surah,
+} from "@/lib/content/types";
 import type { Database } from "@/lib/supabase/types";
 
 type HadithCollectionRow = Database["public"]["Tables"]["hadith_collections"]["Row"];
@@ -76,6 +87,62 @@ function parseHadithTafsirVersions(value: Database["public"]["Tables"]["hadith_e
       return { source, sourceKey, content };
     })
     .filter((item): item is HadithTafsirVersion => item !== null);
+}
+
+function parseStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function parseHadithQa(value: unknown): HadithQaItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+      const question = typeof item["question"] === "string" ? item["question"].trim() : "";
+      const answer = typeof item["answer"] === "string" ? item["answer"].trim() : "";
+      if (!question || !answer) {
+        return null;
+      }
+      return { question, answer };
+    })
+    .filter((item): item is HadithQaItem => item !== null);
+}
+
+function parseRelatedHadith(value: unknown): RelatedHadithItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+      const collectionSlug = typeof item["collectionSlug"] === "string" ? item["collectionSlug"].trim() : "";
+      const numberValue = Number(item["number"]);
+      if (!collectionSlug || !Number.isFinite(numberValue) || !Number.isInteger(numberValue)) {
+        return null;
+      }
+      const title = typeof item["title"] === "string" ? item["title"].trim() : "";
+      return {
+        collectionSlug,
+        number: numberValue,
+        title: title || undefined,
+      };
+    })
+    .filter((item): item is RelatedHadithItem => item !== null);
 }
 
 function getPrayerConfig() {
@@ -243,11 +310,17 @@ export const getHadithItemsByCollection = unstable_cache(
 
     let { data, error } = await supabase
       .from("hadith_entries")
-      .select("number,title,narrator,grade,arabic_text,translation,summary,tafsir_versions")
+      .select("number,title,narrator,grade,arabic_text,translation,summary,tafsir_versions,sanad_nodes,author_qa,tags,related_hadith")
       .eq("collection_slug", collectionSlug)
       .order("number", { ascending: true });
 
-    if (error?.message?.includes("tafsir_versions")) {
+    if (
+      error?.message?.includes("tafsir_versions") ||
+      error?.message?.includes("sanad_nodes") ||
+      error?.message?.includes("author_qa") ||
+      error?.message?.includes("tags") ||
+      error?.message?.includes("related_hadith")
+    ) {
       const fallbackResult = await supabase
         .from("hadith_entries")
         .select("number,title,narrator,grade,arabic_text,translation,summary")
@@ -268,6 +341,10 @@ export const getHadithItemsByCollection = unstable_cache(
       translation: row.translation,
       summary: row.summary,
       tafsirVersions: parseHadithTafsirVersions("tafsir_versions" in row ? row.tafsir_versions : []),
+      sanadNodes: parseStringList("sanad_nodes" in row ? row.sanad_nodes : []),
+      authorQa: parseHadithQa("author_qa" in row ? row.author_qa : []),
+      tags: parseStringList("tags" in row ? row.tags : []),
+      relatedHadith: parseRelatedHadith("related_hadith" in row ? row.related_hadith : []),
     }));
   },
   ["hadith-items-by-collection"],

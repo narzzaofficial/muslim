@@ -74,6 +74,136 @@ function requiredNumber(formData: FormData, key: string): number {
   return value;
 }
 
+function parseLineList(rawValue: string): string[] {
+  return rawValue
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+function parseTags(rawValue: string): string[] {
+  return rawValue
+    .split(/[\r\n,]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function parseAuthorQa(rawValue: string): { question: string; answer: string }[] {
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
+              return null;
+            }
+            const question = typeof item["question"] === "string" ? item["question"].trim() : "";
+            const answer = typeof item["answer"] === "string" ? item["answer"].trim() : "";
+            if (!question || !answer) {
+              return null;
+            }
+            return { question, answer };
+          })
+          .filter((item): item is { question: string; answer: string } => item !== null);
+      }
+
+      if (parsed && typeof parsed === "object") {
+        const payload = parsed as Record<string, unknown>;
+        if (!Array.isArray(payload.lines)) {
+          return [];
+        }
+        const sourceName = typeof payload.sourceName === "string" ? payload.sourceName.trim() : "";
+        const sourceUrl = typeof payload.sourceUrl === "string" ? payload.sourceUrl.trim() : "";
+        const lines = payload.lines as unknown[];
+        const result: { question: string; answer: string }[] = [];
+        let pendingQuestion: string | null = null;
+
+        lines.forEach((line) => {
+          if (!line || typeof line !== "object" || Array.isArray(line)) {
+            return;
+          }
+          const linePayload = line as Record<string, unknown>;
+          const role = linePayload.role === "answer" ? "answer" : "question";
+          const text = typeof linePayload.text === "string" ? linePayload.text.trim() : "";
+
+          if (!text) {
+            return;
+          }
+          if (role === "question") {
+            pendingQuestion = text;
+            return;
+          }
+          if (!pendingQuestion) {
+            return;
+          }
+
+          result.push({
+            question: pendingQuestion,
+            answer: text,
+            ...(sourceName ? { sourceName } : {}),
+            ...(sourceUrl ? { sourceUrl } : {}),
+          } as { question: string; answer: string });
+          pendingQuestion = null;
+        });
+
+        return result;
+      }
+    } catch {
+      // fallback to the legacy delimiter format below
+    }
+  }
+
+  return rawValue
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const delimiter = line.includes("||") ? "||" : "|";
+      const parts = line.split(delimiter);
+      if (parts.length < 2) {
+        return null;
+      }
+      const question = parts[0]?.trim() ?? "";
+      const answer = parts.slice(1).join(delimiter).trim();
+      if (!question || !answer) {
+        return null;
+      }
+      return { question, answer };
+    })
+    .filter((item): item is { question: string; answer: string } => item !== null);
+}
+
+function parseRelatedHadith(rawValue: string): { collectionSlug: string; number: number; title?: string }[] {
+  return rawValue
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const delimiter = line.includes("||") ? "||" : "|";
+      const [ref, ...titleParts] = line.split(delimiter);
+      const [collectionSlugRaw, numberRaw] = (ref ?? "").split("/");
+      const collectionSlug = (collectionSlugRaw ?? "").trim();
+      const numberValue = Number((numberRaw ?? "").trim());
+      if (!collectionSlug || !Number.isFinite(numberValue) || !Number.isInteger(numberValue)) {
+        return null;
+      }
+      const title = titleParts.join(delimiter).trim();
+      return {
+        collectionSlug,
+        number: numberValue,
+        title: title || undefined,
+      };
+    })
+    .filter((item): item is { collectionSlug: string; number: number; title?: string } => item !== null);
+}
+
 export async function upsertHadithCollectionAction(formData: FormData) {
   await requireAdminSession();
 
@@ -140,11 +270,21 @@ export async function upsertHadithEntryAction(formData: FormData) {
     translation: String(formData.get("translation") ?? "").trim() || null,
     summary: String(formData.get("summary") ?? "").trim() || null,
     tafsir_versions: tafsirVersions,
+    sanad_nodes: parseLineList(String(formData.get("sanad_nodes") ?? "")),
+    author_qa: parseAuthorQa(String(formData.get("author_qa") ?? "")),
+    tags: parseTags(String(formData.get("tags") ?? "")),
+    related_hadith: parseRelatedHadith(String(formData.get("related_hadith") ?? "")),
   };
 
   const admin = createAdminSupabaseClient();
   let { error } = await admin.from("hadith_entries").upsert(payload, { onConflict: "collection_slug,number" });
-  if (error?.message?.includes("tafsir_versions")) {
+  if (
+    error?.message?.includes("tafsir_versions") ||
+    error?.message?.includes("sanad_nodes") ||
+    error?.message?.includes("author_qa") ||
+    error?.message?.includes("tags") ||
+    error?.message?.includes("related_hadith")
+  ) {
     const legacyPayload = {
       collection_slug: payload.collection_slug,
       number: payload.number,

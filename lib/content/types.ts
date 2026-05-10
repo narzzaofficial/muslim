@@ -4,6 +4,17 @@ export type HadithTafsirVersion = {
   content: string;
 };
 
+export type HadithQaItem = {
+  question: string;
+  answer: string;
+};
+
+export type RelatedHadithItem = {
+  collectionSlug: string;
+  number: number;
+  title?: string;
+};
+
 export type HadithCollection = {
   slug: string;
   name: string;
@@ -20,6 +31,10 @@ export type HadithItem = {
   translation?: string | null;
   summary?: string | null;
   tafsirVersions?: HadithTafsirVersion[];
+  sanadNodes?: string[];
+  authorQa?: HadithQaItem[];
+  tags?: string[];
+  relatedHadith?: RelatedHadithItem[];
 };
 
 export type KitabBook = {

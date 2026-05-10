@@ -36,6 +36,10 @@ export type Database = {
           translation: string | null;
           summary: string | null;
           tafsir_versions: Json;
+          sanad_nodes: Json;
+          author_qa: Json;
+          tags: Json;
+          related_hadith: Json;
         };
         Insert: {
           id?: string;
@@ -48,6 +52,10 @@ export type Database = {
           translation?: string | null;
           summary?: string | null;
           tafsir_versions?: Json;
+          sanad_nodes?: Json;
+          author_qa?: Json;
+          tags?: Json;
+          related_hadith?: Json;
         };
         Update: {
           id?: string;
@@ -60,6 +68,10 @@ export type Database = {
           translation?: string | null;
           summary?: string | null;
           tafsir_versions?: Json;
+          sanad_nodes?: Json;
+          author_qa?: Json;
+          tags?: Json;
+          related_hadith?: Json;
         };
         Relationships: [];
       };

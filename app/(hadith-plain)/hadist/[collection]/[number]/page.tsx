@@ -1,8 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpRight, ChevronLeft } from "lucide-react";
-import { hadithQa, hadithTags, relatedHadith, sanadNodes } from "@/data/content";
 import { HadithTafsirPanel } from "@/components/hadith/hadith-tafsir-panel";
 import { Container } from "@/components/ui/primitives";
 import { ShareButton } from "@/components/ui/share-button";
@@ -70,6 +69,11 @@ export default async function HadithDetailPage({
     notFound();
   }
 
+  const sanadNodes = active.sanadNodes ?? [];
+  const authorQa = active.authorQa ?? [];
+  const hadithTags = active.tags ?? [];
+  const relatedHadith = active.relatedHadith ?? [];
+
   return (
     <Container className="pb-20">
       <section className="mx-auto max-w-4xl pt-8 sm:pt-10">
@@ -115,17 +119,21 @@ export default async function HadithDetailPage({
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Pohon Sanad</p>
-          <div className="space-y-3">
-            {sanadNodes.map((node, index) => (
-              <div key={node} className="flex items-center gap-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold">{index + 1}</div>
-                <ArrowRight className="h-3.5 w-3.5 text-[var(--muted)]" />
-                <div className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2.5">
-                  <p className="text-sm font-medium">{node}</p>
+          {sanadNodes.length ? (
+            <div className="space-y-3">
+              {sanadNodes.map((node, index) => (
+                <div key={`${node}-${index}`} className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold">{index + 1}</div>
+                  <ArrowRight className="h-3.5 w-3.5 text-[var(--muted)]" />
+                  <div className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2.5">
+                    <p className="text-sm font-medium">{node}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Belum ada data sanad.</p>
+          )}
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
@@ -137,57 +145,68 @@ export default async function HadithDetailPage({
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Penjelasan Author (Q&A)</p>
-          <div className="space-y-3">
-            {hadithQa.map((item) => (
-              <div key={item.question} className="space-y-2">
-                <div className="w-fit max-w-[90%] rounded-2xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--card-strong)_85%,transparent)] px-4 py-3">
-                  <p className="text-sm font-medium">
-                    <span className="mr-2 font-semibold text-[var(--accent)]">Q:</span>
-                    {item.question}
-                  </p>
+          {authorQa.length ? (
+            <div className="space-y-3">
+              {authorQa.map((item, index) => (
+                <div key={`${item.question}-${index}`} className="space-y-2">
+                  <div className="w-fit max-w-[90%] rounded-2xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--card-strong)_85%,transparent)] px-4 py-3">
+                    <p className="text-sm font-medium">
+                      <span className="mr-2 font-semibold text-[var(--accent)]">Q:</span>
+                      {item.question}
+                    </p>
+                  </div>
+                  <div className="ml-auto w-fit max-w-[95%] rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
+                    <p className="text-sm leading-7">
+                      <span className="mr-2 font-semibold text-[var(--accent)]">A:</span>
+                      {item.answer}
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-auto w-fit max-w-[95%] rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
-                  <p className="text-sm leading-7">
-                    <span className="mr-2 font-semibold text-[var(--accent)]">A:</span>
-                    {item.answer}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Belum ada data Q&amp;A.</p>
+          )}
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Tag</p>
-          <div className="flex flex-wrap gap-2">
-            {hadithTags.map((tag) => (
-              <span key={tag} className="interactive-pill rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {hadithTags.length ? (
+            <div className="flex flex-wrap gap-2">
+              {hadithTags.map((tag, index) => (
+                <span key={`${tag}-${index}`} className="interactive-pill rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Belum ada tag.</p>
+          )}
         </div>
 
         <div className="surface-card rounded-[26px] p-6 sm:p-7">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Hadist terkait</p>
-          <div className="space-y-2">
-            {relatedHadith.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="group interactive-row flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <p className="text-xs text-[var(--muted)]">No. {item.number}</p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)]" />
-              </Link>
-            ))}
-          </div>
+          {relatedHadith.length ? (
+            <div className="space-y-2">
+              {relatedHadith.map((item) => (
+                <Link
+                  key={`${item.collectionSlug}-${item.number}`}
+                  href={`/hadist/${item.collectionSlug}/${item.number}`}
+                  className="group interactive-row flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{item.title ?? `${item.collectionSlug}/${item.number}`}</p>
+                    <p className="text-xs text-[var(--muted)]">No. {item.number}</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-[var(--muted)] group-hover:text-[var(--accent)]" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Belum ada hadist terkait.</p>
+          )}
         </div>
       </section>
     </Container>
   );
 }
-

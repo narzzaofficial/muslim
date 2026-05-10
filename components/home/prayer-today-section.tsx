@@ -59,12 +59,14 @@ function minutesFromTime(value: string) {
   return h * 60 + m;
 }
 
-function getActivePrayerName(schedule: PrayerItem[], timezone: string) {
+function getActivePrayerName(schedule: PrayerItem[], now: number | null) {
   if (!schedule.length) {
     return null;
   }
+  if (now === null) {
+    return null;
+  }
 
-  const now = getCurrentMinutesInTimezone(timezone);
   const times = schedule.map((item) => minutesFromTime(item.time));
   const firstIndex = times.findIndex((time) => now < time);
 
@@ -80,7 +82,8 @@ function getActivePrayerName(schedule: PrayerItem[], timezone: string) {
 export function PrayerTodaySection({ initialSchedule }: PrayerTodaySectionProps) {
   const [schedule, setSchedule] = useState<PrayerItem[]>(initialSchedule);
   const [timezone, setTimezone] = useState("Asia/Makassar");
-  const [runningClock, setRunningClock] = useState(getCurrentClockInTimezone("Asia/Makassar"));
+  const [runningClock, setRunningClock] = useState("--.--.--");
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
   const [locationText, setLocationText] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "denied">("idle");
 
@@ -125,10 +128,15 @@ export function PrayerTodaySection({ initialSchedule }: PrayerTodaySectionProps)
   }, []);
 
   useEffect(() => {
-    setRunningClock(getCurrentClockInTimezone(timezone));
+    const syncTime = () => {
+      setRunningClock(getCurrentClockInTimezone(timezone));
+      setNowMinutes(getCurrentMinutesInTimezone(timezone));
+    };
+
+    syncTime();
 
     const timer = window.setInterval(() => {
-      setRunningClock(getCurrentClockInTimezone(timezone));
+      syncTime();
     }, 1000);
 
     return () => window.clearInterval(timer);
@@ -138,7 +146,10 @@ export function PrayerTodaySection({ initialSchedule }: PrayerTodaySectionProps)
     () => schedule.find((item) => item.status === "next") ?? schedule.at(0),
     [schedule],
   );
-  const activePrayerName = getActivePrayerName(schedule, timezone);
+  const activePrayerName = useMemo(
+    () => getActivePrayerName(schedule, nowMinutes),
+    [schedule, nowMinutes],
+  );
   const tzLabel = getTimezoneLabel(timezone);
 
   return (
