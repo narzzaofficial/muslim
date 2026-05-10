@@ -139,7 +139,7 @@ function parseRelatedHadith(value: unknown): RelatedHadithItem[] {
       return {
         collectionSlug,
         number: numberValue,
-        title: title || undefined,
+        ...(title ? { title } : {}),
       };
     })
     .filter((item): item is RelatedHadithItem => item !== null);

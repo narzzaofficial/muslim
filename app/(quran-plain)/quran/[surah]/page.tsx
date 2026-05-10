@@ -11,8 +11,12 @@ import { buildMetadata } from "@/lib/seo";
 export const revalidate = 2592000;
 
 export async function generateStaticParams() {
-  const surahs = await getSurahList();
-  return surahs.map((item) => ({ surah: item.slug }));
+  try {
+    const surahs = await getSurahList();
+    return surahs.map((item) => ({ surah: item.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({

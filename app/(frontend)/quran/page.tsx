@@ -5,6 +5,8 @@ import { Container } from "@/components/ui/primitives";
 import { getSurahList } from "@/lib/content/repository";
 import { buildMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = buildMetadata({
   title: "Al-Qur'an",
   description: "Baca dan jelajahi daftar surah Al-Qur'an dengan tampilan bersih, nyaman, dan mudah diteruskan.",

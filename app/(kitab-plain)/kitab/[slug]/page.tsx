@@ -7,8 +7,12 @@ import { buildMetadata } from "@/lib/seo";
 export const revalidate = 2592000;
 
 export async function generateStaticParams() {
-  const books = await getKitabBooks();
-  return books.map((book) => ({ slug: book.slug }));
+  try {
+    const books = await getKitabBooks();
+    return books.map((book) => ({ slug: book.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({

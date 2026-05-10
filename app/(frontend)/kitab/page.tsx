@@ -4,6 +4,8 @@ import { Container } from "@/components/ui/primitives";
 import { getKitabBooks } from "@/lib/content/repository";
 import { buildMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = buildMetadata({
   title: "Perpustakaan Kitab",
   description:

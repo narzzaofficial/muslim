@@ -12,17 +12,21 @@ import { buildMetadata } from "@/lib/seo";
 export const revalidate = 2592000;
 
 export async function generateStaticParams() {
-  const collections = await getHadithCollections();
-  const params: { collection: string; number: string }[] = [];
+  try {
+    const collections = await getHadithCollections();
+    const params: { collection: string; number: string }[] = [];
 
-  for (const collection of collections) {
-    const items = await getHadithItemsByCollection(collection.slug);
-    items.forEach((item) => {
-      params.push({ collection: collection.slug, number: String(item.number) });
-    });
+    for (const collection of collections) {
+      const items = await getHadithItemsByCollection(collection.slug);
+      items.forEach((item) => {
+        params.push({ collection: collection.slug, number: String(item.number) });
+      });
+    }
+
+    return params;
+  } catch {
+    return [];
   }
-
-  return params;
 }
 
 export async function generateMetadata({

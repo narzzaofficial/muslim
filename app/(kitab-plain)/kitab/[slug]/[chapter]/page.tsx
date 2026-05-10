@@ -11,17 +11,21 @@ import { buildMetadata } from "@/lib/seo";
 export const revalidate = 2592000;
 
 export async function generateStaticParams() {
-  const books = await getKitabBooks();
-  const params: { slug: string; chapter: string }[] = [];
+  try {
+    const books = await getKitabBooks();
+    const params: { slug: string; chapter: string }[] = [];
 
-  for (const book of books) {
-    const chapters = await getKitabChaptersByBook(book.slug);
-    chapters.forEach((chapter) => {
-      params.push({ slug: book.slug, chapter: chapter.slug });
-    });
+    for (const book of books) {
+      const chapters = await getKitabChaptersByBook(book.slug);
+      chapters.forEach((chapter) => {
+        params.push({ slug: book.slug, chapter: chapter.slug });
+      });
+    }
+
+    return params;
+  } catch {
+    return [];
   }
-
-  return params;
 }
 
 export async function generateMetadata({

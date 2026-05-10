@@ -5,6 +5,8 @@ import { Container } from "@/components/ui/primitives";
 import { getHadithCollections } from "@/lib/content/repository";
 import { buildMetadata } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = buildMetadata({
   title: "Pusat Hadist",
   description: "Jelajahi koleksi hadist dan pilih riwayat yang ingin dibaca dalam tampilan sederhana dan fokus.",

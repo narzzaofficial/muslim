@@ -181,7 +181,7 @@ function parseAuthorQa(rawValue: string): { question: string; answer: string }[]
 }
 
 function parseRelatedHadith(rawValue: string): { collectionSlug: string; number: number; title?: string }[] {
-  return rawValue
+  const items = rawValue
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
@@ -198,10 +198,10 @@ function parseRelatedHadith(rawValue: string): { collectionSlug: string; number:
       return {
         collectionSlug,
         number: numberValue,
-        title: title || undefined,
+        ...(title ? { title } : {}),
       };
-    })
-    .filter((item): item is { collectionSlug: string; number: number; title?: string } => item !== null);
+    });
+  return items.filter((item): item is { collectionSlug: string; number: number; title?: string } => item !== null);
 }
 
 export async function upsertHadithCollectionAction(formData: FormData) {
