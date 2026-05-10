@@ -81,9 +81,9 @@ export function HadithQaEditor({ name, initialValue }: HadithQaEditorProps) {
   }, [state]);
 
   return (
-    <div className="rounded-lg border border-[var(--border)] p-3">
+    <div className="rounded-lg border border-(--border) p-3">
       <p className="text-sm font-medium">Penjelasan Author (Q&A) Dinamis</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">Format chat lines, khusus input admin hadist.</p>
+      <p className="mt-1 text-xs text-(--muted)">Format chat lines, khusus input admin hadist.</p>
 
       <input
         type="hidden"
@@ -98,14 +98,14 @@ export function HadithQaEditor({ name, initialValue }: HadithQaEditorProps) {
           value={state.sourceName}
           onChange={(event) => setState((prev) => ({ ...prev, sourceName: event.target.value }))}
           placeholder="Nama sumber (contoh: Kompas.com)"
-          className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+          className="rounded-lg border border-(--border) bg-transparent px-3 py-2 text-sm"
         />
         <input
           type="url"
           value={state.sourceUrl}
           onChange={(event) => setState((prev) => ({ ...prev, sourceUrl: event.target.value }))}
           placeholder="URL sumber (contoh: https://...)"
-          className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm"
+          className="rounded-lg border border-(--border) bg-transparent px-3 py-2 text-sm"
         />
       </div>
 

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)"
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Xia Xia\\\\Documents\\\\Github\\\\muslim\" -Recurse -Name)",
+      "Bash(grep -rn \"^[[:space:]]*//.*\\\\\\(TODO\\\\|FIXME\\\\|XXX\\\\|HACK\\\\\\)\" --include=\"*.tsx\" --include=\"*.ts\" app/ components/ lib/)"
     ]
   }
 }
